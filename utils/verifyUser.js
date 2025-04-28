@@ -1,0 +1,42 @@
+import jwt from 'jsonwebtoken'
+import { errorHandler } from './error.js'
+
+// export const verifyToken = (req, res, next) => {
+//     const token = req.cookies.access_token;
+
+//     if(!token){
+//         return next(errorHandler(401, 'Unauthorized'));
+//     }
+
+//     jwt.verify(token, process.env.JWT_SECRETE, (err, user) => {
+//         if(err){
+//             return next(errorHandler(401, 'Unauthorized'))
+//         }
+//         req.user = user;
+//         next();
+//     })
+// }
+
+export const verifyToken = (req, res, next) => {
+    // Check for token in cookies
+    const cookieToken = req.cookies.access_token;
+    
+    // Check for token in Authorization header
+    const authHeader = req.headers.authorization;
+    const bearerToken = authHeader ? authHeader.split(' ')[1] : null;
+    
+    // Use either token
+    const token = cookieToken || bearerToken;
+
+    if(!token){
+        return next(errorHandler(401, 'Unauthorized'));
+    }
+
+    jwt.verify(token, process.env.JWT_SECRETE, (err, user) => {
+        if(err){
+            return next(errorHandler(401, 'Unauthorized'))
+        }
+        req.user = user;
+        next();
+    });
+}
