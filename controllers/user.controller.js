@@ -92,61 +92,77 @@ export const deleteUser = async (req, res, next) => {
     }
 }
 
-// export const signout = (req, res, next) => {
-//     try{
-//         res.clearCookie('access_token').status(200).json("User has been signed out successfully")
-//     }
-//     catch(error){
-//         next(error)
-//     }
-// }
+// export const getUsers = async (req, res, next) => {
+//     try {
+//         if (req.params.role !== 'admin' && req.params.role !== 'department_head') {
+//             return next(errorHandler(403, 'You are not allowed to see all users'));
+//         }
 
+//         const users = await Profile.find()
+//         .sort({ createdAt: 1 })
+//         .populate('departmentId', 'name');
+
+//         const usersWithoutPassword = users.map((user) => {
+//             const { password, departmentId, ...rest } = user._doc;
+//             return {
+//                 ...rest,
+//                 departmentName: departmentId?.name || 'Other',
+//             };
+//         });
+
+//         res.status(200).json({
+//             users: usersWithoutPassword,
+//         });
+//     } catch (error) {
+//         next(error);
+//     }
+// };
 
 export const getUsers = async (req, res, next) => {
-
-    if(!req.user.isAdmin){
-        return next(errorHandler(403, 'You are not allowed to see all users'))
-    }
-
     try {
-        const startIndex = parseInt(req.query.startIndex) || 0;
-        const limit = parseInt(req.query.limit) || 9;
-        const sortDirection = req.query.sort === 'asc' ? 1 : -1;
-
-        const users = await User.find()
-        .sort({createdAt: sortDirection})
-        .skip(startIndex)
-        .limit(limit);
-
-        const usersWithoutPassword = users.map((user) => {
-            const { password, ...rest } = user._doc;
-            return rest;
+      const { role, userId } = req.params;
+  
+      // Only admin or department_head can access
+      if (role !== 'admin' && role !== 'department_head') {
+        return next(errorHandler(403, 'You are not allowed to see all users'));
+      }
+  
+      let users;
+  
+      if (role === 'admin') {
+        // Admin: Get all users
+        users = await Profile.find()
+          .sort({ createdAt: 1 })
+          .populate('departmentId', 'name');
+      } else if (role === 'department_head') {
+        // Department head: Get users of the same department
+        const departmentHead = await Profile.findById(userId);
+        if (!departmentHead) {
+          return next(errorHandler(404, 'Department head not found'));
+        }
+  
+        users = await Profile.find({
+          departmentId: departmentHead.departmentId // string comparison
         })
-
-        const totalUsers = await User.countDocuments()
-
-        const now = new Date()
-
-        const oneMonthAgo = new Date(
-            now.getFullYear(),
-            now.getMonth() - 1,
-            now.getDate()
-        )
-
-        const lastMonthUsers = await User.countDocuments({
-            createdAt: { $gte: oneMonthAgo },
-        })
-
-        res.status(200).json({
-            users: usersWithoutPassword,
-            totalUsers,
-            lastMonthUsers,
-        })
-
+          .sort({ createdAt: 1 })
+          .populate('departmentId', 'name');
+      }
+  
+      // Remove passwords and return department name
+      const usersWithoutPassword = users.map((user) => {
+        const { password, departmentId, ...rest } = user._doc;
+        return {
+          ...rest,
+          departmentName: departmentId?.name || 'Other',
+        };
+      });
+  
+      res.status(200).json({ users: usersWithoutPassword });
+  
     } catch (error) {
-        next(error)
+      next(error);
     }
-}
+};
 
 
 export const getUser = async (req, res, next) => {

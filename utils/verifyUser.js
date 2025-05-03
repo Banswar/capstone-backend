@@ -18,15 +18,13 @@ import { errorHandler } from './error.js'
 // }
 
 export const verifyToken = (req, res, next) => {
-    // Check for token in cookies
-    const cookieToken = req.cookies.access_token;
     
     // Check for token in Authorization header
     const authHeader = req.headers.authorization;
     const bearerToken = authHeader ? authHeader.split(' ')[1] : null;
     
     // Use either token
-    const token = cookieToken || bearerToken;
+    const token = bearerToken;
 
     if(!token){
         return next(errorHandler(401, 'Unauthorized'));
