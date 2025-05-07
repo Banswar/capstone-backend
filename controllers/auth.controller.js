@@ -136,18 +136,26 @@ export const google = async (req, res, next) => {
     }
 
     try {
+        const durationMap = {
+            guest: 15,
+            employee: 30,
+            department_head: 45,
+            admin: 60
+        };
+
         const user = await Profile.findOne({ email });
 
+        const minutes = durationMap[user.role] || 15;
+        const sessionExpiry = new Date(Date.now() + minutes * 60 * 1000);
+
         if(user){
-            const expiresIn = getExpiryTimeByRole(user.role);
+            await Profile.findByIdAndUpdate(user._id, { sessionExpiresAt: sessionExpiry });
         
             console.log('google login Role:', user.role);
-            console.log('google login Calculated Expiry Time:', expiresIn);
+            console.log('google login Calculated Expiry Time:', sessionExpiry);
             
-            const token = jwt.sign({ id: user._id, expiresIn: expiresIn }, process.env.JWT_SECRETE);
-
-            const expiryTimestamp = calculateExpiryTimestamp(expiresIn);
-            console.log('Sign in exact timestamp: ', expiryTimestamp)
+            const token = jwt.sign({ id: user._id, expiresIn: sessionExpiry }, process.env.JWT_SECRETE);
+            console.log('Sign in exact timestamp: ', sessionExpiry)
 
             const { password, ...rest } = user._doc;
 
@@ -156,7 +164,6 @@ export const google = async (req, res, next) => {
 
             const userData = {
                 ...rest,
-                expiryTimestamp
             }
 
             res.status(200).json({
@@ -178,22 +185,25 @@ export const google = async (req, res, next) => {
             });
             
             await newUser.save();
+
+            const minutes = durationMap[newUser.role] || 15;
+            const sessionExpiry = new Date(Date.now() + minutes * 60 * 1000);
+
+            await Profile.findByIdAndUpdate(newUser._id, { sessionExpiresAt: sessionExpiry });
             
-            const expiresIn = getExpiryTimeByRole(newUser.role);
+            // const expiresIn = getExpiryTimeByRole(newUser.role);
         
             console.log('google login Role:', newUser.role);
-            console.log('google login Calculated Expiry Time:', expiresIn);
+            console.log('google login Calculated Expiry Time:', newUser.sessionExpiresAt);
             
-            const token = jwt.sign({ id: newUser._id, expiresIn: expiresIn }, process.env.JWT_SECRETE);
+            const token = jwt.sign({ id: newUser._id, expiresIn: sessionExpiry }, process.env.JWT_SECRETE);
 
-            const expiryTimestamp = calculateExpiryTimestamp(expiresIn);
-            console.log('Sign in exact timestamp: ', expiryTimestamp)
+            // console.log('Sign in exact timestamp: ', newUser.sessionExpiresAt)
 
             const { password, ...rest } = newUser._doc;
 
             const userData = {
                 ...rest,
-                expiryTimestamp
             }
             
             res.status(200).json({
@@ -259,12 +269,17 @@ export const validateSession = async (req, res, next) => {
             const department = await Departments.findById(user.departmentId);
             user.departmentName = department?.name || null;
 
-            let expiresIn = getExpiryTimeByRole(user.role);
-            console.log('validate session in Role:', user.role);
-            console.log('validate session is Calculated Expiry Time:', expiresIn);
+            const durationMap = {
+                guest: 15,
+                employee: 30,
+                department_head: 45,
+                admin: 60
+            };
+            
 
-            const expiryTimestamp = calculateExpiryTimestamp(expiresIn);
-            console.log('validate exact timestamp: ', expiryTimestamp);
+            console.log('validate session in Role:', user.role);
+            console.log('validate session is Calculated Expiry Time:', user.sessionExpiresAt);
+
 
             return res.status(200).json({
                 valid: true,
@@ -279,7 +294,7 @@ export const validateSession = async (req, res, next) => {
                     failedLoginAttempts: user.failedLoginAttempts,
                     accountLocked: user.accountLocked,
                     lockoutUntil: user.lockoutUntil,
-                    expiryTimestamp
+                    expiryTimestamp: user.sessionExpiresAt,
                 }
             });
 
@@ -345,7 +360,7 @@ export const requestOTP = async (req, res, next) => {
 
         await newOtp.save();
 
-        const response = await sendOtpEmail(user.email, otp);
+        const response = await sendOtpEmail(user.email, otp, user.username);
 
         if (!response) {
             await OTP.deleteOne({ email: user.email, otp });
@@ -459,7 +474,7 @@ export const resend_otp = async(req, res, next) => {
         await newOtp.save();
 
 
-        const response = await sendOtpEmail(user.email, otp);
+        const response = await sendOtpEmail(user.email, otp, user.username);
 
         if (!response) {
             await OTP.deleteOne({ _id: newOtp._id });

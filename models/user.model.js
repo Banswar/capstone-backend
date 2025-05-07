@@ -52,7 +52,13 @@ const profile  = new mongoose.Schema({
     lockoutUntil: {
         type: Date,
         default: null
+    },
+
+    sessionExpiresAt: {
+        type: Date,
+        default: null
     }
+    
 }, {timestamps: true} )
 
 

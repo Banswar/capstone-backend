@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.route.js';
 import userRoutes from './routes/user.route.js'
 import departmentRoutes from './routes/department.route.js'
 import insertDepartments from './addDepartments.js';
+import activityRoutes  from './routes/activity.route.js'
 
 
 const app = express();
@@ -19,6 +20,7 @@ app.use(cookieParser());
 app.use("/api/auth", authRoutes)
 app.use("/api/user", userRoutes)
 app.use("/api/department", departmentRoutes)
+app.use("/api/activity", activityRoutes)
 // insertDepartments()
 
 app.use((err, req, res, next) =>{

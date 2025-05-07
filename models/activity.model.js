@@ -6,42 +6,48 @@ const activitySchema = new Schema({
     userId: {
         type: Types.ObjectId,
         ref: 'Profiles',
-        required: true,
-        unique: true
+        required: true
+    },
+    departmentId: {
+        type: String,
+        default: null
+    },
+    departmentName: {
+        type: String,
+        default: null
     },
     action: {
         type: String,
         required: true,
-        trim: true
     },
     resource: {
         type: String,
-        trim: true,
-        default: null
-    },
-    timestamp: {
-        type: Date,
-        default: Date.now,
+        default: null,
         required: true
     },
-    ipAddress: {
+    userAgent: {
         type: String,
-        trim: true,
         default: null
     },
-    userAgent: {
+    deviceInfo: {
         type: String,
         trim: true,
         default: null
     },
     riskLevel: {
         type: String,
-        enum: ['low', 'medium', 'high', 'critical'],
         default: 'low'
     },
-    departmentId: {
-        type: Types.ObjectId,
-        ref: 'Departments',
+    latitude: {
+        type: Number,
+        default: null
+    },
+    longitude: {
+        type: Number,
+        default: null
+    },
+    address: {
+        type: String,
         default: null
     },
     details: {
@@ -51,20 +57,6 @@ const activitySchema = new Schema({
 }, { timestamps: true });
 
 
-activitySchema.index({ userId: 1 }, { unique: true });
-
 const Activity = model("Activity", activitySchema);
 
 export default Activity;
-
-
-
-
-    // userId: user._id,
-    // action: "Login",
-    // resource: "/login",
-    // ipAddress: "192.168.1.1",
-    // userAgent: "Mozilla/5.0",
-    // riskLevel: "low",
-    // departmentId: user.departmentId,
-    // details: { location: "Nagpur" }
