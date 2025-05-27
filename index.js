@@ -8,6 +8,7 @@ import userRoutes from './routes/user.route.js'
 import departmentRoutes from './routes/department.route.js'
 import insertDepartments from './addDepartments.js';
 import activityRoutes  from './routes/activity.route.js'
+import fileRotes from './routes/file.routes.js'
 
 
 const app = express();
@@ -21,6 +22,7 @@ app.use("/api/auth", authRoutes)
 app.use("/api/user", userRoutes)
 app.use("/api/department", departmentRoutes)
 app.use("/api/activity", activityRoutes)
+app.use("/api/files", fileRotes)
 // insertDepartments()
 
 app.use((err, req, res, next) =>{
